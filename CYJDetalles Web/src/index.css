@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+/* Colores personalizados de CYJ Detalles */
+:root {
+  --color-primary: #976ECD;
+  --color-secondary: #BCA3DA;
+  --color-accent: #9966D4;
+  --color-light: #FFF;
+  --color-background-light: #D4C5E6;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  background-color: var(--color-background-light);
+}
