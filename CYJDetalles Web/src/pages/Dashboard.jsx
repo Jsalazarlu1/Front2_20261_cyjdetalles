@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Line } from 'react-chartjs-2';
+import { getUsers } from '../utils/storage';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -36,7 +37,8 @@ const Dashboard = () => {
       setOrders(JSON.parse(localStorage.getItem('orders') || '[{"id":1,"cliente":"Ana","producto":"Desayuno Plus","estado":"Pendiente"},{"id":2,"cliente":"Luis","producto":"Flores Aromáticas","estado":"Pendiente"},{"id":3,"cliente":"María","producto":"Anchetas de Dulces","estado":"Pendiente"}]'));
       setClients(JSON.parse(localStorage.getItem('clients') || '["Ana","Luis","María"]'));
       setProducts(JSON.parse(localStorage.getItem('products') || '[{"name":"Desayuno Plus","price":68000},{"name":"Anchetas de Dulces","price":48000},{"name":"Desayuno Mega Especial","price":118000},{"name":"Desayuno Premium","price":89000},{"name":"Recordatorio Matrimonio","price":9500},{"name":"Flores Aromáticas","price":9500},{"name":"Recordatorio Bautizo / Primera comunión","price":8500},{"name":"Vela de lavanda","price":38000},{"name":"Retablo Clásico","price":48000},{"name":"Retablo con imagen","price":48000},{"name":"Retablo Múltiple","price":48000},{"name":"Retablo Temático","price":48000}]'));
-      setUsers(JSON.parse(localStorage.getItem('users') || '["admin"]'));
+      const allUsers = getUsers();
+      setUsers(allUsers.length > 0 ? allUsers : [{nombre: 'admin'}]);
     };
     loadData();
   }, []);
@@ -117,14 +119,14 @@ const Dashboard = () => {
     }
   };
 
-  const removeUser = (name) => {
-    saveUsers(users.filter(u => u !== name));
+  const removeUser = (userNombre) => {
+    saveUsers(users.filter(u => u.nombre !== userNombre));
   };
 
   const addUser = () => {
-    const name = prompt('Nombre del nuevo usuario:');
-    if (name) {
-      saveUsers([...users, name]);
+    const nombre = prompt('Nombre del nuevo usuario:');
+    if (nombre) {
+      saveUsers([...users, {nombre, documento: '', email: '', password: '', username: ''}]);
     }
   };
 
@@ -301,9 +303,9 @@ const Dashboard = () => {
               <ul className="mt-4">
                 {users.map((u, i) => (
                   <li key={i} className="mb-2 flex justify-between items-center">
-                    <span>{u}</span>
+                    <span>{u.nombre || u}</span>
                     <button
-                      onClick={() => removeUser(u)}
+                      onClick={() => removeUser(u.nombre || u)}
                       className="bg-red-500 text-white border-none py-1 px-3 rounded cursor-pointer hover:bg-red-600"
                     >
                       ❌
