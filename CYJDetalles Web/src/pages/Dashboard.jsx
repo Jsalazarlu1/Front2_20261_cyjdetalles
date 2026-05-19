@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Line } from 'react-chartjs-2';
-import { getUsers } from '../utils/storage';
+import { getUsers, updateOrderStatus, ESTADOS, getOrders } from '../utils/storage';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -35,9 +35,41 @@ const Dashboard = () => {
   useEffect(() => {
     const loadData = () => {
       setOrders(JSON.parse(localStorage.getItem('orders') || '[{"id":1,"cliente":"Ana","producto":"Desayuno Plus","estado":"Pendiente"},{"id":2,"cliente":"Luis","producto":"Flores Aromáticas","estado":"Pendiente"},{"id":3,"cliente":"María","producto":"Anchetas de Dulces","estado":"Pendiente"}]'));
-      setClients(JSON.parse(localStorage.getItem('clients') || '["Ana","Luis","María"]'));
-      setProducts(JSON.parse(localStorage.getItem('products') || '[{"name":"Desayuno Plus","price":68000},{"name":"Anchetas de Dulces","price":48000},{"name":"Desayuno Mega Especial","price":118000},{"name":"Desayuno Premium","price":89000},{"name":"Recordatorio Matrimonio","price":9500},{"name":"Flores Aromáticas","price":9500},{"name":"Recordatorio Bautizo / Primera comunión","price":8500},{"name":"Vela de lavanda","price":38000},{"name":"Retablo Clásico","price":48000},{"name":"Retablo con imagen","price":48000},{"name":"Retablo Múltiple","price":48000},{"name":"Retablo Temático","price":48000}]'));
+      const rawClients = JSON.parse(localStorage.getItem('clients') || '["Ana","Luis","María"]');
+      const normalized = rawClients.map(c =>
+        typeof c === 'string' ? { nombre: c, documento: '', email: '', telefono: '', activo: true } : c
+      );
+      const allOrders = JSON.parse(localStorage.getItem('orders') || '[]');
+      const orderMap = {};
+      allOrders.forEach(o => {
+        const name = o.userNombre || o.cliente?.nombre || o.cliente;
+        if (name) {
+          if (!orderMap[name]) orderMap[name] = { nombre: name, documento: o.userDocumento || '', pedidos: 0 };
+          orderMap[name].pedidos++;
+        }
+      });
+      const merged = [...normalized];
+      Object.values(orderMap).forEach(oc => {
+        const exist = merged.find(c => c.nombre === oc.nombre);
+        if (exist) {
+          exist.pedidos = oc.pedidos;
+          if (oc.documento && !exist.documento) exist.documento = oc.documento;
+        } else {
+          merged.push({ ...oc, email: '', telefono: '', activo: true });
+        }
+      });
       const allUsers = getUsers();
+      allUsers.forEach(u => {
+        const exist = merged.find(c => c.nombre === u.nombre || c.documento === u.documento);
+        if (exist) {
+          if (u.documento) exist.documento = u.documento;
+          if (u.email) exist.email = u.email;
+        } else if (u.nombre && u.nombre !== 'admin') {
+          merged.push({ nombre: u.nombre, documento: u.documento || '', email: u.email || '', telefono: '', activo: true, pedidos: 0 });
+        }
+      });
+      setClients(merged);
+      setProducts(JSON.parse(localStorage.getItem('products') || '[{"name":"Desayuno Plus","price":68000},{"name":"Anchetas de Dulces","price":48000},{"name":"Desayuno Mega Especial","price":118000},{"name":"Desayuno Premium","price":89000},{"name":"Recordatorio Matrimonio","price":9500},{"name":"Flores Aromáticas","price":9500},{"name":"Recordatorio Bautizo / Primera comunión","price":8500},{"name":"Vela de lavanda","price":38000},{"name":"Retablo Clásico","price":48000},{"name":"Retablo con imagen","price":48000},{"name":"Retablo Múltiple","price":48000},{"name":"Retablo Temático","price":48000}]'));
       setUsers(allUsers.length > 0 ? allUsers : [{nombre: 'admin'}]);
     };
     loadData();
@@ -100,10 +132,17 @@ const Dashboard = () => {
     saveOrders(updated);
   };
 
+  const toggleClientStatus = (nombre) => {
+    const updated = clients.map(c =>
+      c.nombre === nombre ? { ...c, activo: !c.activo } : c
+    );
+    saveClients(updated);
+  };
+
   const addClient = () => {
     const name = prompt('Nombre del nuevo cliente:');
     if (name) {
-      saveClients([...clients, name]);
+      saveClients([...clients, { nombre: name, documento: '', email: '', telefono: '', activo: true, pedidos: 0 }]);
     }
   };
 
@@ -233,20 +272,39 @@ const Dashboard = () => {
                   {orders.map(o => (
                     <tr key={o.id}>
                       <td className="border border-gray-300 p-2">{o.id}</td>
-                      <td className="border border-gray-300 p-2">{o.cliente}</td>
-                      <td className="border border-gray-300 p-2">{o.producto}</td>
+                      <td className="border border-gray-300 p-2">{o.userNombre || o.cliente?.nombre || o.cliente || 'Desconocido'}</td>
+                      <td className="border border-gray-300 p-2">
+                        {o.items && o.items.length > 0 ? (
+                          <div className="flex flex-col gap-1">
+                            {o.items.map((item, idx) => (
+                              <div key={idx} className="flex items-center gap-2">
+                                {item.imagen && (
+                                  <img src={item.imagen} alt={item.nombre} className="w-10 h-20 object-cover rounded" />
+                                )}
+                                <span>{item.nombre}{item.quantity > 1 ? ` x${item.quantity}` : ''}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : o.producto ? o.producto : o.item && o.item.length > 0 ? o.item.map(item => item.nombre).join(', ') : 'Sin producto'}
+                      </td>
                       <td className="border border-gray-300 p-2 status">{o.estado}</td>
                       <td className="border border-gray-300 p-2">
-                        {o.estado !== 'Entregado' ? (
-                          <button
-                            onClick={() => markDelivered(o.id)}
-                            className="bg-[#976ECD] text-white border-none py-1 px-3 rounded cursor-pointer hover:bg-[#9966D4]"
-                          >
-                            Entregado
-                          </button>
-                        ) : (
-                          <span className="text-green-600">✔</span>
-                        )}
+                        <select value={o.estado}
+                        onChange={(e) =>{
+                          {/* Validar que el nuevo estado sea correcto y actualizar el estado de la orden en localStorage */}
+                          const newStatus = e.target.value;
+                          if (updateOrderStatus(o.id, newStatus)) {
+                            const updated = getOrders();
+                            saveOrders(updated); 
+                          } else{
+                            alert ('✖️ Estado no válido o error al actualizar');
+                          }
+                        }} className="border border-[#BCA3DA] rounded px-2 py-1 focus:outline-none focus:border-[#976ECD]"
+                        >
+                          {ESTADOS.map((estado) => (
+                            <option key={estado} value={estado}>{estado}</option>
+                          ))}
+                        </select>
                       </td>
                     </tr>
                   ))}
@@ -258,16 +316,49 @@ const Dashboard = () => {
           {activeModule === 'clients' && (
             <div>
               <h2>Clientes</h2>
-              <ul className="mt-4">
-                {clients.map((c, i) => (
-                  <li key={i} className="mb-2">{c}</li>
-                ))}
-              </ul>
+              <p className="mb-4">Gestión de clientes registrados en el sistema.</p>
+              <table className="w-full border-collapse border border-gray-300">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="border border-gray-300 p-2">Nombre</th>
+                    <th className="border border-gray-300 p-2">Documento</th>
+                    <th className="border border-gray-300 p-2">Email</th>
+                    <th className="border border-gray-300 p-2">Teléfono</th>
+                    <th className="border border-gray-300 p-2">Pedidos</th>
+                    <th className="border border-gray-300 p-2">Estado</th>
+                    <th className="border border-gray-300 p-2">Acción</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {clients.map((c, i) => (
+                    <tr key={i} className={!c.activo ? 'opacity-50' : ''}>
+                      <td className="border border-gray-300 p-2">{c.nombre}</td>
+                      <td className="border border-gray-300 p-2">{c.documento || '—'}</td>
+                      <td className="border border-gray-300 p-2">{c.email || '—'}</td>
+                      <td className="border border-gray-300 p-2">{c.telefono || '—'}</td>
+                      <td className="border border-gray-300 p-2 text-center">{c.pedidos || 0}</td>
+                      <td className="border border-gray-300 p-2 text-center">
+                        <span className={`px-2 py-1 rounded-full text-xs font-bold text-white ${c.activo ? 'bg-green-500' : 'bg-red-500'}`}>
+                          {c.activo ? 'Activo' : 'Inactivo'}
+                        </span>
+                      </td>
+                      <td className="border border-gray-300 p-2 text-center">
+                        <button
+                          onClick={() => toggleClientStatus(c.nombre)}
+                          className={`border-none py-1 px-3 rounded cursor-pointer text-xs font-bold text-white ${c.activo ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'}`}
+                        >
+                          {c.activo ? 'Inactivar' : 'Activar'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
               <button
                 onClick={addClient}
                 className="mt-4 bg-[#976ECD] text-white border-none py-2 px-4 rounded cursor-pointer hover:bg-[#9966D4]"
               >
-                Agregar Cliente
+                + Agregar Cliente
               </button>
             </div>
           )}

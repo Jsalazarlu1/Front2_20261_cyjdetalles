@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getCart, saveCart, clearCart } from '../utils/storage';
+import { getCart, saveCart, clearCart, saveOrder, getCurrentUser} from '../utils/storage';
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -46,7 +46,9 @@ const Checkout = () => {
   };
 
   const handlePayment = (method) => {
+    
     if (cart.length === 0) {
+    
       alert('🛒 Tu carrito está vacío. Agrega productos antes de pagar.');
       return;
       }
@@ -60,8 +62,9 @@ const Checkout = () => {
     const confirmPurchase = window.confirm(
       `💳 ¿Deseas confirmar la compra de ${cart.reduce((sum, item) => sum + item.quantity, 0)} productos con pago ${method}?`
     );
-
+    // Aquí podrías agregar validaciones adicionales, como verificar que los campos de envío estén completos.
     if (confirmPurchase) {
+<<<<<<< Updated upstream
       // vamos Obtener la informaion del cliente
       const currentUser = JSON.parse(localStorage.getItem('currentUser')||'{}');
       // validacion  si el cliente esta registrado 
@@ -112,6 +115,22 @@ const Checkout = () => {
 
       alert(`✅ ¡Compra confirmada! Has comprado ${cart.reduce((sum, item) => sum + item.quantity, 0)} productos por un total de $${getTotal().toLocaleString()} con pago ${method}.`);
       // Limpiamos el carrito
+=======
+      saveOrder ({
+      userDocumento: getCurrentUser()?.documento || 'Desconocido',
+      userNombre: getCurrentUser()?.nombre || 'Desconocido',
+      items: cart,
+      subtotal: getSubtotal(),
+      envio: costoEnvio,
+      total: getTotal(),
+      nombre,
+      telefono,
+      direccion,
+      metodoPago: method,
+      mensaje,
+    })
+      alert('🎉 Muchas gracias, tu compra ha sido realizada con éxito.');
+>>>>>>> Stashed changes
       clearCart();
       window.dispatchEvent(new Event('storage'));
     }
