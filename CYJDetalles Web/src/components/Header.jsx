@@ -1,8 +1,9 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { getCurrentUser, logout, getCart } from '../utils/storage';
 import { useState, useEffect } from 'react';
 
 const Header = () => {
+  const navigate = useNavigate();
   const [user, setUser] = useState(getCurrentUser());
   const [cartCount, setCartCount] = useState(0);
 
@@ -27,6 +28,7 @@ const Header = () => {
   const handleLogout = () => {
     logout();
     setUser(null);
+    navigate('/login');
   };
 
   return (
@@ -41,6 +43,9 @@ const Header = () => {
           {user ? (
             <>
               <span className="text-[#976ECD] font-bold">Hola, {user.nombre || user.fullName}</span>
+              <Link to="/my-orders" className="text-[#976ECD] font-bold hover:text-[#9966D4]">
+                <i className="fas fa-box"></i> Mis Pedidos
+              </Link>
               <button onClick={handleLogout} className="text-[#976ECD] font-bold hover:text-[#9966D4] bg-transparent border-none cursor-pointer">
                 <i className="fas fa-sign-out-alt"></i> Cerrar Sesión
               </button>

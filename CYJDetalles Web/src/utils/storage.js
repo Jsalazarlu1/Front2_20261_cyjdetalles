@@ -58,3 +58,71 @@ export const getAdminSession = () => {
 export const clearAdminSession = () => {
   localStorage.removeItem('session');
 };
+
+// ===== FUNCIONES PARA ÓRDENES Y DETALLE_PEDIDO =====
+
+const ESTADOS = ['Pendiente', 'Confirmado', 'En preparación', 'En camino', 'Entregado'];
+
+// Genera un ID único para cada orden
+const generateOrderId = () => {
+  return Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
+};
+
+// Guarda una nueva orden
+export const saveOrder = (orderData) => {
+  const orders = getOrders();
+  const newOrder = {
+    id: generateOrderId(),
+    fecha: new Date().toISOString(),
+    estado: 'Pendiente',
+    ...orderData,
+  };
+  orders.push(newOrder);
+  localStorage.setItem('orders', JSON.stringify(orders));
+  return newOrder;
+};
+
+// Obtiene todas las órdenes
+export const getOrders = () => {
+  const orders = localStorage.getItem('orders');
+  return orders ? JSON.parse(orders) : [];
+};
+
+// Obtiene órdenes de un usuario específico por su documento
+export const getOrdersByUser = (documento) => {
+  const orders = getOrders();
+  return orders.filter((o) => o.userDocumento === documento);
+};
+
+// Actualiza el estado de una orden
+export const updateOrderStatus = (orderId, newStatus) => {
+  const orders = getOrders();
+  const index = orders.findIndex((o) => o.id === orderId);
+  if (index === -1) return false;
+  if (!ESTADOS.includes(newStatus)) return false;
+  orders[index].estado = newStatus;
+  // Si el pedido no tiene historial de estados, crea un array vacio
+  if (!orders [index].historialEstado) {
+    orders[index].historialEstados = [];
+    
+  }
+  // Agrega un nuevo registro al historial de estados
+  orders[index].historialEstados.push({
+    estado: newStatus,
+    fecha:new Date().toLocaleDateString('es-Co'),
+    hora: new Date().toLocaleTimeString('es-Co')
+
+  });
+  // Guarda los cambios en localStorage
+  localStorage.setItem('orders', JSON.stringify(orders));
+  return true;
+};
+
+// Obtiene el siguiente estado disponible en la secuencia
+export const getNextStatus = (currentStatus) => {
+  const idx = ESTADOS.indexOf(currentStatus);
+  if (idx === -1 || idx === ESTADOS.length - 1) return null;
+  return ESTADOS[idx + 1];
+};
+
+export { ESTADOS };

@@ -11,6 +11,8 @@ import Promotions from './pages/Promotions';
 import Checkout from './pages/Checkout';
 import Dashboard from './pages/Dashboard';
 import ProtectedRoute from './components/ProtectedRoute';
+import MyOrders from './pages/MyOrders';
+import OrderDetail from './pages/OrderDetail';
 
 function App() {
   return (
@@ -25,9 +27,19 @@ function App() {
           <Route path="/testimonials" element={<Testimonials />} />
           <Route path="/promotions" element={<Promotions />} />
           <Route path="/checkout" element={<Checkout />} />
+          <Route path="/my-orders" element={
+            <ProtectedRoute>
+              <MyOrders />
+            </ProtectedRoute>
+          } />
           <Route path="/dashboard" element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/orders/:id" element={
+            <ProtectedRoute>
+              <OrderDetail />
             </ProtectedRoute>
           } />
           <Route path="*" element={<Navigate to="/" />} />
