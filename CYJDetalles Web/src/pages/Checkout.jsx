@@ -64,73 +64,21 @@ const Checkout = () => {
     );
     // Aquí podrías agregar validaciones adicionales, como verificar que los campos de envío estén completos.
     if (confirmPurchase) {
-<<<<<<< Updated upstream
-      // vamos Obtener la informaion del cliente
-      const currentUser = JSON.parse(localStorage.getItem('currentUser')||'{}');
-      // validacion  si el cliente esta registrado 
-      if (!currentUser || !currentUser.email) {
-        alert ('Debes estar registrado para realizar la compra 😕');
-        navigate('/login');
-        return;
-      }
-      // creamos el objeto de la orden con toda la informacion necesaria para el seguimiento de la orden y el historial del cliente
-      const order= {
-        id: Date.now(),
-        clienteId: currentUser.id || currentUser.email,
-        client: {
-          nombre : nombre,
-          email: currentUser.email,
-          telefono: telefono,
-          direccion: direccion,
-          documento: currentUser.documento || ''
-        },
-        prductos : cart.map(item => ({
-          id : item.id,
-          nombre: item.nombre,
-          precio: item.precio || item.price,
-          quantity: item.quantity,
-          subtotal: (item.precio || item.price) * item.quantity
-        })),
-        subtotal : getSubtotal(),
-        envio : costoEnvio,
-        total : getTotal(),
-        metodoPago : method,
-        fecha : new Date().toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' }),
-        hora : new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }),
-        estado : 'Pendiente',
-        hisorialEtados : [
-          {
-            estado : 'Pendiente',
-            fecha : new Date().toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' }),
-            hora : new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
-          }
-        ],
-        notas : mensaje,
-        createdAt : new Date().toISOString()
-      };
-      // Guardamos la orden en el localStorage
-      const orders = JSON.parse(localStorage.getItem('orders') || '[]');
-      orders.push(order);
-      localStorage.setItem('orders', JSON.stringify(orders));
-
-      alert(`✅ ¡Compra confirmada! Has comprado ${cart.reduce((sum, item) => sum + item.quantity, 0)} productos por un total de $${getTotal().toLocaleString()} con pago ${method}.`);
-      // Limpiamos el carrito
-=======
-      saveOrder ({
-      userDocumento: getCurrentUser()?.documento || 'Desconocido',
-      userNombre: getCurrentUser()?.nombre || 'Desconocido',
-      items: cart,
-      subtotal: getSubtotal(),
-      envio: costoEnvio,
-      total: getTotal(),
-      nombre,
-      telefono,
-      direccion,
-      metodoPago: method,
-      mensaje,
-    })
+      // Guardar la orden usando la utilidad centralizada
+      saveOrder({
+        userDocumento: getCurrentUser()?.documento || 'Desconocido',
+        userNombre: getCurrentUser()?.nombre || 'Desconocido',
+        items: cart,
+        subtotal: getSubtotal(),
+        envio: costoEnvio,
+        total: getTotal(),
+        nombre,
+        telefono,
+        direccion,
+        metodoPago: method,
+        mensaje,
+      });
       alert('🎉 Muchas gracias, tu compra ha sido realizada con éxito.');
->>>>>>> Stashed changes
       clearCart();
       window.dispatchEvent(new Event('storage'));
     }
