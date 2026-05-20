@@ -31,6 +31,9 @@ const Dashboard = () => {
   const [clients, setClients] = useState([]);
   const [products, setProducts] = useState([]);
   const [users, setUsers] = useState([]);
+  const [showProductModal, setShowProductModal] = useState(false);
+  const [editProduct, setEditProduct] = useState(null);
+  const [productForm, setProductForm] = useState({ name: '', price: '', imagen: '' });
 
   useEffect(() => {
     const loadData = () => {
@@ -69,7 +72,7 @@ const Dashboard = () => {
         }
       });
       setClients(merged);
-      setProducts(JSON.parse(localStorage.getItem('products') || '[{"name":"Desayuno Plus","price":68000},{"name":"Anchetas de Dulces","price":48000},{"name":"Desayuno Mega Especial","price":118000},{"name":"Desayuno Premium","price":89000},{"name":"Recordatorio Matrimonio","price":9500},{"name":"Flores Aromáticas","price":9500},{"name":"Recordatorio Bautizo / Primera comunión","price":8500},{"name":"Vela de lavanda","price":38000},{"name":"Retablo Clásico","price":48000},{"name":"Retablo con imagen","price":48000},{"name":"Retablo Múltiple","price":48000},{"name":"Retablo Temático","price":48000}]'));
+      setProducts(JSON.parse(localStorage.getItem('products') || '[{"name":"Desayuno Plus","price":68000,"imagen":"/carr1.jpeg"},{"name":"Anchetas de Dulces","price":48000,"imagen":"/Feliz día.jpeg"},{"name":"Desayuno Mega Especial","price":118000,"imagen":"/Desayuno Mega Especial.jpeg"},{"name":"Desayuno Premium","price":89000,"imagen":"/Desayuno Premium.jpeg"},{"name":"Recordatorio Matrimonio","price":9500,"imagen":"/Matri.jpeg"},{"name":"Flores Aromáticas","price":9500,"imagen":"/Flores en vela.JPG"},{"name":"Recordatorio Bautizo / Primera comunión","price":8500,"imagen":"/Angelitos.jpeg"},{"name":"Vela de lavanda","price":38000,"imagen":"/Lavanda.jpeg"},{"name":"Retablo Clásico","price":48000,"imagen":"/Matri (2).jpeg"},{"name":"Retablo con imagen","price":48000,"imagen":"/arbol.png"},{"name":"Retablo Múltiple","price":48000,"imagen":"/Collage.jpeg"},{"name":"Retablo Temático","price":48000,"imagen":"/Cuadro moni 27 x 39.png"}]'));
       setUsers(allUsers.length > 0 ? allUsers : [{nombre: 'admin'}]);
     };
     loadData();
@@ -146,15 +149,41 @@ const Dashboard = () => {
     }
   };
 
-  const removeProduct = (name) => {
-    saveProducts(products.filter(p => p.name !== name));
+  const openAddProduct = () => {
+    setEditProduct(null);
+    setProductForm({ name: '', price: '', imagen: '' });
+    setShowProductModal(true);
   };
 
-  const addProduct = () => {
-    const name = prompt('Nombre del producto:');
-    const price = prompt('Precio del producto:');
-    if (name && price && !isNaN(Number(price))) {
-      saveProducts([...products, {name, price: Number(price)}]);
+  const openEditProduct = (product) => {
+    setEditProduct(product);
+    setProductForm({ name: product.name, price: product.price.toString(), imagen: product.imagen || '' });
+    setShowProductModal(true);
+  };
+
+  const handleSaveProduct = () => {
+    const { name, price, imagen } = productForm;
+    if (!name || !price || isNaN(Number(price))) {
+      alert('Por favor ingresa un nombre y un precio válido.');
+      return;
+    }
+    if (editProduct) {
+      saveProducts(products.map(p =>
+        p.name === editProduct.name ? { ...p, name, price: Number(price), imagen } : p
+      ));
+    } else {
+      if (products.find(p => p.name === name)) {
+        alert('Ya existe un producto con ese nombre.');
+        return;
+      }
+      saveProducts([...products, { name, price: Number(price), imagen }]);
+    }
+    setShowProductModal(false);
+  };
+
+  const removeProduct = (name) => {
+    if (window.confirm(`¿Eliminar producto "${name}"?`)) {
+      saveProducts(products.filter(p => p.name !== name));
     }
   };
 
@@ -366,24 +395,51 @@ const Dashboard = () => {
           {activeModule === 'products' && (
             <div>
               <h2>Productos</h2>
-              <ul className="mt-4">
-                {products.map((p, i) => (
-                  <li key={i} className="mb-2 flex justify-between items-center">
-                    <span>{p.name} - ${p.price.toLocaleString('es-CO')}</span>
-                    <button
-                      onClick={() => removeProduct(p.name)}
-                      className="bg-red-500 text-white border-none py-1 px-3 rounded cursor-pointer hover:bg-red-600"
-                    >
-                      ❌
-                    </button>
-                  </li>
-                ))}
-              </ul>
+              <p className="mb-4">Gestión de productos disponibles en el catálogo.</p>
+              <table className="w-full border-collapse border border-gray-300">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="border border-gray-300 p-2">Imagen</th>
+                    <th className="border border-gray-300 p-2">Nombre</th>
+                    <th className="border border-gray-300 p-2">Precio</th>
+                    <th className="border border-gray-300 p-2">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {products.map((p, i) => (
+                    <tr key={i}>
+                      <td className="border border-gray-300 p-2 text-center">
+                        {p.imagen ? (
+                          <img src={p.imagen} alt={p.name} className="w-16 h-16 object-cover rounded" />
+                        ) : (
+                          <div className="w-16 h-16 bg-gray-200 rounded flex items-center justify-center text-gray-400 text-xs">Sin imagen</div>
+                        )}
+                      </td>
+                      <td className="border border-gray-300 p-2">{p.name}</td>
+                      <td className="border border-gray-300 p-2">${p.price.toLocaleString('es-CO')}</td>
+                      <td className="border border-gray-300 p-2 text-center">
+                        <button
+                          onClick={() => openEditProduct(p)}
+                          className="bg-[#976ECD] text-white border-none py-1 px-3 rounded cursor-pointer hover:bg-[#9966D4] mr-2 text-xs"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => removeProduct(p.name)}
+                          className="bg-red-500 text-white border-none py-1 px-3 rounded cursor-pointer hover:bg-red-600 text-xs"
+                        >
+                          Eliminar
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
               <button
-                onClick={addProduct}
+                onClick={openAddProduct}
                 className="mt-4 bg-[#976ECD] text-white border-none py-2 px-4 rounded cursor-pointer hover:bg-[#9966D4]"
               >
-                Agregar Producto
+                + Agregar Producto
               </button>
             </div>
           )}
@@ -413,6 +469,69 @@ const Dashboard = () => {
             </div>
           )}
         </div>
+
+        {/* Product Modal */}
+        {showProductModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl">
+              <h3 className="text-xl font-semibold mb-4 text-[#333]">
+                {editProduct ? 'Editar Producto' : 'Agregar Producto'}
+              </h3>
+              <div className="flex flex-col gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nombre del producto</label>
+                  <input
+                    type="text"
+                    value={productForm.name}
+                    onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
+                    className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-[#976ECD]"
+                    placeholder="Ej: Desayuno Premium"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Precio</label>
+                  <input
+                    type="number"
+                    value={productForm.price}
+                    onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
+                    className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-[#976ECD]"
+                    placeholder="Ej: 68000"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">URL de la imagen</label>
+                  <input
+                    type="text"
+                    value={productForm.imagen}
+                    onChange={(e) => setProductForm({ ...productForm, imagen: e.target.value })}
+                    className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-[#976ECD]"
+                    placeholder="https://ejemplo.com/imagen.jpg"
+                  />
+                </div>
+                {productForm.imagen && (
+                  <div className="text-center">
+                    <p className="text-sm text-gray-500 mb-1">Vista previa:</p>
+                    <img src={productForm.imagen} alt="Preview" className="w-24 h-24 object-cover rounded mx-auto" onError={(e) => { e.target.style.display = 'none' }} />
+                  </div>
+                )}
+              </div>
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={() => setShowProductModal(false)}
+                  className="bg-gray-300 text-gray-700 border-none py-2 px-4 rounded cursor-pointer hover:bg-gray-400"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSaveProduct}
+                  className="bg-[#976ECD] text-white border-none py-2 px-4 rounded cursor-pointer hover:bg-[#9966D4]"
+                >
+                  {editProduct ? 'Guardar Cambios' : 'Agregar'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
