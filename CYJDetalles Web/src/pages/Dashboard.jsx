@@ -33,7 +33,15 @@ const Dashboard = () => {
   const [users, setUsers] = useState([]);
   const [showProductModal, setShowProductModal] = useState(false);
   const [editProduct, setEditProduct] = useState(null);
-  const [productForm, setProductForm] = useState({ name: '', price: '', imagen: '' });
+  const [productForm, setProductForm] = useState({
+    id: '',
+    name: '',
+    category: '',
+    description: '',
+    price: '',
+    stock: '',
+    imagen: ''
+  });
 
   useEffect(() => {
     const loadData = () => {
@@ -72,7 +80,7 @@ const Dashboard = () => {
         }
       });
       setClients(merged);
-      setProducts(JSON.parse(localStorage.getItem('products') || '[{"name":"Desayuno Plus","price":68000,"imagen":"/carr1.jpeg"},{"name":"Anchetas de Dulces","price":48000,"imagen":"/Feliz día.jpeg"},{"name":"Desayuno Mega Especial","price":118000,"imagen":"/Desayuno Mega Especial.jpeg"},{"name":"Desayuno Premium","price":89000,"imagen":"/Desayuno Premium.jpeg"},{"name":"Recordatorio Matrimonio","price":9500,"imagen":"/Matri.jpeg"},{"name":"Flores Aromáticas","price":9500,"imagen":"/Flores en vela.JPG"},{"name":"Recordatorio Bautizo / Primera comunión","price":8500,"imagen":"/Angelitos.jpeg"},{"name":"Vela de lavanda","price":38000,"imagen":"/Lavanda.jpeg"},{"name":"Retablo Clásico","price":48000,"imagen":"/Matri (2).jpeg"},{"name":"Retablo con imagen","price":48000,"imagen":"/arbol.png"},{"name":"Retablo Múltiple","price":48000,"imagen":"/Collage.jpeg"},{"name":"Retablo Temático","price":48000,"imagen":"/Cuadro moni 27 x 39.png"}]'));
+      setProducts(JSON.parse(localStorage.getItem('products') || '[{"name":"Desayuno Plus","price":68000,"imagen":"/carr1.jpeg"}]'));
       setUsers(allUsers.length > 0 ? allUsers : [{nombre: 'admin'}]);
     };
     loadData();
@@ -151,39 +159,70 @@ const Dashboard = () => {
 
   const openAddProduct = () => {
     setEditProduct(null);
-    setProductForm({ name: '', price: '', imagen: '' });
+    setProductForm({
+      id: '',
+      name: '',
+      category: '',
+      description: '',
+      price: '',
+      stock: '',
+      imagen: ''
+    });
     setShowProductModal(true);
   };
 
   const openEditProduct = (product) => {
     setEditProduct(product);
-    setProductForm({ name: product.name, price: product.price.toString(), imagen: product.imagen || '' });
+    setProductForm({
+      id: product.id || '',
+      name: product.name,
+      category: product.category || '',
+      description: product.description || '',
+      price: product.price.toString(),
+      stock: (product.stock ?? 0).toString(),
+      imagen: product.imagen || ''
+    });
     setShowProductModal(true);
   };
 
   const handleSaveProduct = () => {
-    const { name, price, imagen } = productForm;
-    if (!name || !price || isNaN(Number(price))) {
-      alert('Por favor ingresa un nombre y un precio válido.');
+    const { id, name, category, description, price, stock, imagen } = productForm;
+    if (!id.trim() || !name.trim() || !category.trim() || !description.trim() || !price || isNaN(Number(price)) || !stock || isNaN(Number(stock))) {
+      alert('Por favor completa todos los campos con valores válidos.');
       return;
     }
+
+    const normalizedId = id.trim();
+    const normalizedProduct = {
+      id: normalizedId,
+      name: name.trim(),
+      category: category.trim(),
+      description: description.trim(),
+      price: Number(price),
+      stock: Number(stock),
+      imagen: imagen || editProduct?.imagen || ''
+    };
+
     if (editProduct) {
-      saveProducts(products.map(p =>
-        p.name === editProduct.name ? { ...p, name, price: Number(price), imagen } : p
-      ));
-    } else {
-      if (products.find(p => p.name === name)) {
-        alert('Ya existe un producto con ese nombre.');
+      if (normalizedId !== editProduct.id && products.some(p => p.id === normalizedId)) {
+        alert('Ya existe un producto con ese ID.');
         return;
       }
-      saveProducts([...products, { name, price: Number(price), imagen }]);
+      saveProducts(products.map(p => p.id === editProduct.id ? normalizedProduct : p));
+    } else {
+      if (products.some(p => p.id === normalizedId)) {
+        alert('Ya existe un producto con ese ID.');
+        return;
+      }
+      saveProducts([...products, normalizedProduct]);
     }
+
     setShowProductModal(false);
   };
 
-  const removeProduct = (name) => {
-    if (window.confirm(`¿Eliminar producto "${name}"?`)) {
-      saveProducts(products.filter(p => p.name !== name));
+  const removeProduct = (id) => {
+    if (window.confirm(`¿Eliminar producto "${id}"?`)) {
+      saveProducts(products.filter(p => p.id !== id));
     }
   };
 
@@ -399,24 +438,32 @@ const Dashboard = () => {
               <table className="w-full border-collapse border border-gray-300">
                 <thead>
                   <tr className="bg-gray-100">
+                    <th className="border border-gray-300 p-2">ID Producto</th>
                     <th className="border border-gray-300 p-2">Imagen</th>
-                    <th className="border border-gray-300 p-2">Nombre</th>
-                    <th className="border border-gray-300 p-2">Precio</th>
+                    <th className="border border-gray-300 p-2">Nombre Producto</th>
+                    <th className="border border-gray-300 p-2">Categoría</th>
+                    <th className="border border-gray-300 p-2">Descripción</th>
+                    <th className="border border-gray-300 p-2">Precio unitario</th>
+                    <th className="border border-gray-300 p-2">Stock</th>
                     <th className="border border-gray-300 p-2">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {products.map((p, i) => (
-                    <tr key={i}>
-                      <td className="border border-gray-300 p-2 text-center">
+                  {products.map((p) => (
+                    <tr key={p.id}>
+                      <td className="border border-gray-300 p-2">{p.id}</td>
+                      <td className="border border-gray-300 p-2">
                         {p.imagen ? (
-                          <img src={p.imagen} alt={p.name} className="w-16 h-16 object-cover rounded" />
+                          <img src={p.imagen} alt={p.name} className="w-20 h-16 object-cover rounded" />
                         ) : (
-                          <div className="w-16 h-16 bg-gray-200 rounded flex items-center justify-center text-gray-400 text-xs">Sin imagen</div>
+                          <span className="text-xs text-gray-500">Sin imagen</span>
                         )}
                       </td>
                       <td className="border border-gray-300 p-2">{p.name}</td>
+                      <td className="border border-gray-300 p-2">{p.category || '—'}</td>
+                      <td className="border border-gray-300 p-2">{p.description || '—'}</td>
                       <td className="border border-gray-300 p-2">${p.price.toLocaleString('es-CO')}</td>
+                      <td className="border border-gray-300 p-2">{p.stock}</td>
                       <td className="border border-gray-300 p-2 text-center">
                         <button
                           onClick={() => openEditProduct(p)}
@@ -425,7 +472,7 @@ const Dashboard = () => {
                           Editar
                         </button>
                         <button
-                          onClick={() => removeProduct(p.name)}
+                          onClick={() => removeProduct(p.id)}
                           className="bg-red-500 text-white border-none py-1 px-3 rounded cursor-pointer hover:bg-red-600 text-xs"
                         >
                           Eliminar
@@ -479,7 +526,17 @@ const Dashboard = () => {
               </h3>
               <div className="flex flex-col gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nombre del producto</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">ID producto</label>
+                  <input
+                    type="text"
+                    value={productForm.id}
+                    onChange={(e) => setProductForm({ ...productForm, id: e.target.value })}
+                    className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-[#976ECD]"
+                    placeholder="Ej: P001"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nombre Producto</label>
                   <input
                     type="text"
                     value={productForm.name}
@@ -489,7 +546,52 @@ const Dashboard = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Precio</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+                  <select
+                    value={productForm.category}
+                    onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
+                    className="w-full border border-gray-300 rounded px-3 py-2 bg-white focus:outline-none focus:border-[#976ECD]"
+                  >
+                    <option value="">Seleccione una categoría</option>
+                    <option value="Desayunos">Desayunos</option>
+                    <option value="Anchetas">Anchetas</option>
+                    <option value="Velas artesanales">Velas artesanales</option>
+                    <option value="Retablos personalizados">Retablos personalizados</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+                  <textarea
+                    value={productForm.description}
+                    onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
+                    className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-[#976ECD]"
+                    placeholder="Describe el producto"
+                    rows={3}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">URL de imagen</label>
+                  <input
+                    type="text"
+                    value={productForm.imagen}
+                    onChange={(e) => setProductForm({ ...productForm, imagen: e.target.value })}
+                    className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-[#976ECD]"
+                    placeholder="https://.../imagen.jpg"
+                  />
+                  {productForm.imagen && (
+                    <div className="mt-3">
+                      <span className="block text-sm text-gray-500 mb-2">Vista previa:</span>
+                      <img
+                        src={productForm.imagen}
+                        alt="Vista previa del producto"
+                        className="w-full h-40 object-cover rounded border border-gray-200"
+                        onError={(e) => { e.currentTarget.src = '/placeholder.png'; }}
+                      />
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Precio unitario</label>
                   <input
                     type="number"
                     value={productForm.price}
@@ -499,21 +601,15 @@ const Dashboard = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">URL de la imagen</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Stock</label>
                   <input
-                    type="text"
-                    value={productForm.imagen}
-                    onChange={(e) => setProductForm({ ...productForm, imagen: e.target.value })}
+                    type="number"
+                    value={productForm.stock}
+                    onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })}
                     className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-[#976ECD]"
-                    placeholder="https://ejemplo.com/imagen.jpg"
+                    placeholder="Ej: 10"
                   />
                 </div>
-                {productForm.imagen && (
-                  <div className="text-center">
-                    <p className="text-sm text-gray-500 mb-1">Vista previa:</p>
-                    <img src={productForm.imagen} alt="Preview" className="w-24 h-24 object-cover rounded mx-auto" onError={(e) => { e.target.style.display = 'none' }} />
-                  </div>
-                )}
               </div>
               <div className="flex justify-end gap-3 mt-6">
                 <button
