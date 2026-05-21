@@ -66,7 +66,7 @@ const Checkout = () => {
     if (confirmPurchase) {
       // Guardar la orden usando la utilidad centralizada
       saveOrder({
-        userDocumento: getCurrentUser()?.documento || 'Desconocido',
+        userDocumento: getCurrentUser()?.n_documento || getCurrentUser()?.documento || 'Desconocido',
         userNombre: getCurrentUser()?.nombre || 'Desconocido',
         items: cart,
         subtotal: getSubtotal(),

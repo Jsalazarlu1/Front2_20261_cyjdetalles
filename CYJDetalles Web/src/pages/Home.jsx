@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { getCart, saveCart } from '../utils/storage';
+import { Link } from 'react-router-dom';
+import { getCart, saveCart, getCurrentUser, isAdmin } from '../utils/storage';
+import { getAllProductos } from '../utils/api.js';
 
 // Datos de productos organizados por categoría
 const productos = {
-  anchetas: [
+  anchetas: [ 
     { id: 1, nombre: 'Desayuno Plus', descripcion: 'Wraps de pollo, Milo, Porción de fruta, Bon yurt, Galletas de Queso, Chocolatina y Torta personal.', precio: 110000, imagen: '/carr1.jpeg' },
     { id: 2, nombre: 'Anchetas de Dulces', descripcion: 'La selección más dulce para cualquier celebración.', precio: 70000, imagen: '/Feliz día.jpeg' },
     { id: 3, nombre: 'Desayuno Mega Especial', descripcion: 'Portaretrato personalizado, Milo, Jugo de Naranja, Rollos de Jamón y Queso, Wraps de pollo, fruta, Bon yurt o Parfait, Galletas de Queso y Flores.', precio: 120000, imagen: '/Desayuno Mega Especial.jpeg' },
@@ -33,14 +35,70 @@ const carouselItems = [
 
 const Home = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [currentUser, setCurrentUser] = useState(getCurrentUser());
+  const [dynamicProducts, setDynamicProducts] = useState([]);
+  const [Productos, setProductos] = useState([]);
+
+
 
   // Efecto para el carrusel automático
   useEffect(() => {
+    // Cargar productos dinámicos desde el backend
+    getAllProductos()
+      .then((data) =>{
+        setProductos(data)
+        console.log('Productos cargados:', data)
+      }
+    )
+      .catch((error) => console.error('Error al cargar productos:', error));
+      //carusel
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % carouselItems.length);
     }, 10000);
     return () => clearInterval(interval);
   }, []);
+
+  const loadDynamicProducts = () => {
+    const stored = JSON.parse(localStorage.getItem('products') || '[]');
+    setDynamicProducts(Array.isArray(stored) ? stored : []);
+  };
+
+  useEffect(() => {
+    loadDynamicProducts();
+    const handleStorageUpdate = () => {
+      setCurrentUser(getCurrentUser());
+      loadDynamicProducts();
+    };
+    window.addEventListener('storage', handleStorageUpdate);
+    return () => window.removeEventListener('storage', handleStorageUpdate);
+  }, []);
+
+  const getDisplayProduct = (producto) => ({
+    id: producto.id,
+    nombre: producto.nombre || producto.name || 'Producto',
+    descripcion: producto.descripcion || producto.description || '',
+    precio: producto.precio ?? producto.price ?? 0,
+    imagen: producto.imagen || producto.image || '/placeholder.png',
+  });
+
+  const getDynamicCategoryProducts = (category) => {
+    const lowerCategory = category.toLowerCase();
+    return dynamicProducts
+      .filter((producto) => {
+        const cat = (producto.category || '').toLowerCase();
+        if (category === 'anchetas') return cat.includes('ancheta') || cat.includes('desayuno');
+        if (category === 'velas') return cat.includes('vela') || cat.includes('recordatorio');
+        if (category === 'retablos') return cat.includes('retablo');
+        return false;
+      })
+      .map(getDisplayProduct);
+  };
+
+  const mergedProducts = {
+    anchetas: [...productos.anchetas, ...getDynamicCategoryProducts('anchetas')],
+    velas: [...productos.velas, ...getDynamicCategoryProducts('velas')],
+    retablos: [...productos.retablos, ...getDynamicCategoryProducts('retablos')],
+  };
 
   const addToCart = (producto) => {
     const existingCart = getCart();
@@ -66,6 +124,14 @@ const Home = () => {
 
   return (
     <div className="container mx-auto px-4">
+      {isAdmin(currentUser) && (
+        <div className="flex justify-end my-4">
+          <Link to="/dashboard" className="bg-[#976ECD] text-white py-2 px-4 rounded hover:bg-[#7d4db2]">
+            Ir al Dashboard
+          </Link>
+        </div>
+      )}
+
       {/* Carrusel de productos destacados */}
       <section className="relative overflow-hidden my-8">
         <h2 className="text-center text-[#9966D4] text-2xl mb-4">Productos Destacados</h2>
@@ -91,7 +157,7 @@ const Home = () => {
       <section id="anchetas" className="my-10">
         <h2 id="catalogo" className="text-[#976ECD] text-center text-3xl mb-6 pb-2 border-b-2 border-[#BCA3DA]">Anchetas y Desayunos Sorpresa</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-          {productos.anchetas.map((producto) => (
+          {mergedProducts.anchetas.map((producto) => (
             <div key={producto.id} className="bg-[#D4C5E6] rounded-lg overflow-hidden shadow-lg hover:-translate-y-1 hover:shadow-xl transition-all flex flex-col">
               <img src={producto.imagen} alt={producto.nombre} className="w-full h-64 object-cover" />
               <div className="p-4 text-center flex flex-col flex-grow justify-between">
@@ -115,7 +181,7 @@ const Home = () => {
       <section id="velas" className="my-10">
         <h2 className="text-[#976ECD] text-center text-3xl mb-6 pb-2 border-b-2 border-[#BCA3DA]">Velas Aromáticas y Recordatorios</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-          {productos.velas.map((producto) => (
+          {mergedProducts.velas.map((producto) => (
             <div key={producto.id} className="bg-[#D4C5E6] rounded-lg overflow-hidden shadow-lg hover:-translate-y-1 hover:shadow-xl transition-all flex flex-col">
               <img src={producto.imagen} alt={producto.nombre} className="w-full h-64 object-cover" />
               <div className="p-4 text-center flex flex-col flex-grow justify-between">
@@ -139,7 +205,7 @@ const Home = () => {
       <section id="retablos" className="my-10">
         <h2 className="text-[#976ECD] text-center text-3xl mb-6 pb-2 border-b-2 border-[#BCA3DA]">Retablos Personalizados</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-          {productos.retablos.map((producto) => (
+          {mergedProducts.retablos.map((producto) => (
             <div key={producto.id} className="bg-[#D4C5E6] rounded-lg overflow-hidden shadow-lg hover:-translate-y-1 hover:shadow-xl transition-all flex flex-col">
               <img src={producto.imagen} alt={producto.nombre} className="w-full h-64 object-cover" />
               <div className="p-4 text-center flex flex-col flex-grow justify-between">

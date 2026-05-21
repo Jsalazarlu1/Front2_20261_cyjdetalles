@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:9090/api';
+const API_URL = 'http://localhost:8080/api';
 
 // FUNCION LOGIN
 export const loginUser = async (documento, password) => {
@@ -180,7 +180,7 @@ try {
 
 export const getAllProductos = async () => {
   try {
-    const response = await fetch(`${API_URL}/productos`, {
+    const response = await fetch(`${API_URL}/Producto`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
