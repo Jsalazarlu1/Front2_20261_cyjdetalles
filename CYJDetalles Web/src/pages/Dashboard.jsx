@@ -42,20 +42,48 @@ const Dashboard = () => {
     stock: '',
     imagen: ''
   });
+  const [showClientModal, setShowClientModal] = useState(false);
+  const [editClient, setEditClient] = useState(null);
+  const [clientForm, setClientForm] = useState({
+    id_cliente: '',
+    ti_documento: '',
+    n_documento: '',
+    nombre: '',
+    apellido: '',
+    telefono: '',
+    direccion: '',
+    ciudad: '',
+    email: '',
+    fecha_registro: ''
+  });
 
   useEffect(() => {
     const loadData = () => {
       setOrders(JSON.parse(localStorage.getItem('orders') || '[{"id":1,"cliente":"Ana","producto":"Desayuno Plus","estado":"Pendiente"},{"id":2,"cliente":"Luis","producto":"Flores Aromáticas","estado":"Pendiente"},{"id":3,"cliente":"María","producto":"Anchetas de Dulces","estado":"Pendiente"}]'));
       const rawClients = JSON.parse(localStorage.getItem('clients') || '["Ana","Luis","María"]');
       const normalized = rawClients.map(c =>
-        typeof c === 'string' ? { nombre: c, documento: '', email: '', telefono: '', activo: true } : c
+        typeof c === 'string'
+          ? {
+              id_cliente: '',
+              ti_documento: '',
+              n_documento: '',
+              nombre: c,
+              apellido: '',
+              telefono: '',
+              direccion: '',
+              ciudad: '',
+              email: '',
+              fecha_registro: '',
+              activo: true
+            }
+          : c
       );
       const allOrders = JSON.parse(localStorage.getItem('orders') || '[]');
       const orderMap = {};
       allOrders.forEach(o => {
         const name = o.userNombre || o.cliente?.nombre || o.cliente;
         if (name) {
-          if (!orderMap[name]) orderMap[name] = { nombre: name, documento: o.userDocumento || '', pedidos: 0 };
+          if (!orderMap[name]) orderMap[name] = { nombre: name, n_documento: o.userDocumento || '', pedidos: 0 };
           orderMap[name].pedidos++;
         }
       });
@@ -64,19 +92,45 @@ const Dashboard = () => {
         const exist = merged.find(c => c.nombre === oc.nombre);
         if (exist) {
           exist.pedidos = oc.pedidos;
-          if (oc.documento && !exist.documento) exist.documento = oc.documento;
+          if (oc.n_documento && !exist.n_documento) exist.n_documento = oc.n_documento;
         } else {
-          merged.push({ ...oc, email: '', telefono: '', activo: true });
+          merged.push({
+            id_cliente: '',
+            ti_documento: '',
+            n_documento: oc.n_documento,
+            nombre: oc.nombre,
+            apellido: '',
+            telefono: '',
+            direccion: '',
+            ciudad: '',
+            email: '',
+            fecha_registro: '',
+            activo: true,
+            pedidos: oc.pedidos
+          });
         }
       });
       const allUsers = getUsers();
       allUsers.forEach(u => {
-        const exist = merged.find(c => c.nombre === u.nombre || c.documento === u.documento);
+        const exist = merged.find(c => c.nombre === u.nombre || c.n_documento === u.documento);
         if (exist) {
-          if (u.documento) exist.documento = u.documento;
+          if (u.documento) exist.n_documento = u.documento;
           if (u.email) exist.email = u.email;
         } else if (u.nombre && u.nombre !== 'admin') {
-          merged.push({ nombre: u.nombre, documento: u.documento || '', email: u.email || '', telefono: '', activo: true, pedidos: 0 });
+          merged.push({
+            id_cliente: '',
+            ti_documento: '',
+            n_documento: u.documento || '',
+            nombre: u.nombre,
+            apellido: '',
+            telefono: '',
+            direccion: '',
+            ciudad: '',
+            email: u.email || '',
+            fecha_registro: '',
+            activo: true,
+            pedidos: 0
+          });
         }
       });
       setClients(merged);
@@ -150,11 +204,69 @@ const Dashboard = () => {
     saveClients(updated);
   };
 
-  const addClient = () => {
-    const name = prompt('Nombre del nuevo cliente:');
-    if (name) {
-      saveClients([...clients, { nombre: name, documento: '', email: '', telefono: '', activo: true, pedidos: 0 }]);
+  const openAddClient = () => {
+    setEditClient(null);
+    setClientForm({
+      id_cliente: '',
+      ti_documento: '',
+      n_documento: '',
+      nombre: '',
+      apellido: '',
+      telefono: '',
+      direccion: '',
+      ciudad: '',
+      email: '',
+      fecha_registro: new Date().toISOString().split('T')[0]
+    });
+    setShowClientModal(true);
+  };
+
+  const openEditClient = (client) => {
+    setEditClient(client);
+    setClientForm({
+      id_cliente: client.id_cliente || '',
+      ti_documento: client.ti_documento || '',
+      n_documento: client.n_documento || '',
+      nombre: client.nombre || '',
+      apellido: client.apellido || '',
+      telefono: client.telefono || '',
+      direccion: client.direccion || '',
+      ciudad: client.ciudad || '',
+      email: client.email || '',
+      fecha_registro: client.fecha_registro || ''
+    });
+    setShowClientModal(true);
+  };
+
+  const handleSaveClient = () => {
+    const { nombre, apellido, ti_documento, n_documento } = clientForm;
+    if (!nombre.trim() || !apellido.trim() || !ti_documento || !n_documento.trim()) {
+      alert('Por favor completa los campos obligatorios: Nombre, Apellido, Tipo y Número de documento.');
+      return;
     }
+
+    const normalizedClient = {
+      id_cliente: editClient ? editClient.id_cliente : (clients.length > 0 ? Math.max(...clients.map(c => Number(c.id_cliente) || 0)) + 1 : 1).toString(),
+      ti_documento: clientForm.ti_documento,
+      n_documento: clientForm.n_documento.trim(),
+      nombre: clientForm.nombre.trim(),
+      apellido: clientForm.apellido.trim(),
+      telefono: clientForm.telefono.trim(),
+      direccion: clientForm.direccion.trim(),
+      ciudad: clientForm.ciudad.trim(),
+      email: clientForm.email.trim(),
+      fecha_registro: clientForm.fecha_registro,
+      activo: editClient ? editClient.activo : true,
+      pedidos: editClient ? editClient.pedidos : 0
+    };
+
+    if (editClient) {
+      saveClients(clients.map(c => c.id_cliente === editClient.id_cliente ? normalizedClient : c));
+    } else {
+      saveClients([...clients, normalizedClient]);
+    }
+
+    setShowClientModal(false);
   };
 
   const openAddProduct = () => {
@@ -381,56 +493,83 @@ const Dashboard = () => {
             </div>
           )}
 
-          {activeModule === 'clients' && (
-            <div>
-              <h2>Clientes</h2>
-              <p className="mb-4">Gestión de clientes registrados en el sistema.</p>
-              <table className="w-full border-collapse border border-gray-300">
-                <thead>
-                  <tr className="bg-gray-100">
-                    <th className="border border-gray-300 p-2">Nombre</th>
-                    <th className="border border-gray-300 p-2">Documento</th>
-                    <th className="border border-gray-300 p-2">Email</th>
-                    <th className="border border-gray-300 p-2">Teléfono</th>
-                    <th className="border border-gray-300 p-2">Pedidos</th>
-                    <th className="border border-gray-300 p-2">Estado</th>
-                    <th className="border border-gray-300 p-2">Acción</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {clients.map((c, i) => (
-                    <tr key={i} className={!c.activo ? 'opacity-50' : ''}>
-                      <td className="border border-gray-300 p-2">{c.nombre}</td>
-                      <td className="border border-gray-300 p-2">{c.documento || '—'}</td>
-                      <td className="border border-gray-300 p-2">{c.email || '—'}</td>
-                      <td className="border border-gray-300 p-2">{c.telefono || '—'}</td>
-                      <td className="border border-gray-300 p-2 text-center">{c.pedidos || 0}</td>
-                      <td className="border border-gray-300 p-2 text-center">
-                        <span className={`px-2 py-1 rounded-full text-xs font-bold text-white ${c.activo ? 'bg-green-500' : 'bg-red-500'}`}>
-                          {c.activo ? 'Activo' : 'Inactivo'}
-                        </span>
-                      </td>
-                      <td className="border border-gray-300 p-2 text-center">
-                        <button
-                          onClick={() => toggleClientStatus(c.nombre)}
-                          className={`border-none py-1 px-3 rounded cursor-pointer text-xs font-bold text-white ${c.activo ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'}`}
-                        >
-                          {c.activo ? 'Inactivar' : 'Activar'}
-                        </button>
-                      </td>
+            {activeModule === 'clients' && (
+              <div>
+                <h2>Clientes</h2>
+                <p className="mb-4">Gestión de clientes registrados en el sistema.</p>
+                <table className="w-full border-collapse border border-gray-300">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="border border-gray-300 p-2">ID</th>
+                      <th className="border border-gray-300 p-2">Tipo Doc.</th>
+                      <th className="border border-gray-300 p-2">N° Documento</th>
+                      <th className="border border-gray-300 p-2">Nombre</th>
+                      <th className="border border-gray-300 p-2">Apellido</th>
+                      <th className="border border-gray-300 p-2">Teléfono</th>
+                      <th className="border border-gray-300 p-2">Dirección</th>
+                      <th className="border border-gray-300 p-2">Ciudad</th>
+                      <th className="border border-gray-300 p-2">Email</th>
+                      <th className="border border-gray-300 p-2">Fecha Registro</th>
+                      <th className="border border-gray-300 p-2">Pedidos</th>
+                      <th className="border border-gray-300 p-2">Estado</th>
+                      <th className="border border-gray-300 p-2">Acción</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-              <button
-                onClick={addClient}
-                className="mt-4 bg-[#976ECD] text-white border-none py-2 px-4 rounded cursor-pointer hover:bg-[#9966D4]"
-              >
-                + Agregar Cliente
-              </button>
-            </div>
-          )}
-
+                  </thead>
+                  <tbody>
+                    {clients.map((c, i) => (
+                      <tr key={i} className={!c.activo ? 'opacity-50' : ''}>
+                        <td className="border border-gray-300 p-2">{c.id_cliente || '—'}</td>
+                        <td className="border border-gray-300 p-2">{c.ti_documento || '—'}</td>
+                        <td className="border border-gray-300 p-2">{c.n_documento || '—'}</td>
+                        <td className="border border-gray-300 p-2">{c.nombre}</td>
+                        <td className="border border-gray-300 p-2">{c.apellido || '—'}</td>
+                        <td className="border border-gray-300 p-2">{c.telefono || '—'}</td>
+                        <td className="border border-gray-300 p-2">{c.direccion || '—'}</td>
+                        <td className="border border-gray-300 p-2">{c.ciudad || '—'}</td>
+                        <td className="border border-gray-300 p-2">{c.email || '—'}</td>
+                        <td className="border border-gray-300 p-2">{c.fecha_registro || '—'}</td>
+                        <td className="border border-gray-300 p-2 text-center">{c.pedidos || 0}</td>
+                        <td className="border border-gray-300 p-2 text-center">
+                          <span className={`px-2 py-1 rounded-full text-xs font-bold text-white ${c.activo ? 'bg-green-500' : 'bg-red-500'}`}>
+                            {c.activo ? 'Activo' : 'Inactivo'}
+                          </span>
+                        </td>
+                        <td className="border border-gray-300 p-2 text-center">
+                          <button
+                            onClick={() => openEditClient(c)}
+                            className="bg-[#976ECD] text-white border-none py-1 px-3 rounded cursor-pointer hover:bg-[#9966D4] mr-1 text-xs"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            onClick={() => toggleClientStatus(c.nombre)}
+                            className={`border-none py-1 px-3 rounded cursor-pointer text-xs font-bold text-white mr-1 ${c.activo ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-green-500 hover:bg-green-600'}`}
+                          >
+                            {c.activo ? 'Inactivar' : 'Activar'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (window.confirm(`¿Eliminar cliente "${c.nombre}"?`)) {
+                                saveClients(clients.filter(cl => cl.id_cliente !== c.id_cliente));
+                              }
+                            }}
+                            className="bg-red-500 text-white border-none py-1 px-3 rounded cursor-pointer hover:bg-red-600 text-xs"
+                          >
+                            Eliminar
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <button
+                  onClick={openAddClient}
+                  className="mt-4 bg-[#976ECD] text-white border-none py-2 px-4 rounded cursor-pointer hover:bg-[#9966D4]"
+                >
+                  + Agregar Cliente
+                </button>
+              </div>
+            )}
           {activeModule === 'products' && (
             <div>
               <h2>Productos</h2>
@@ -623,6 +762,127 @@ const Dashboard = () => {
                   className="bg-[#976ECD] text-white border-none py-2 px-4 rounded cursor-pointer hover:bg-[#9966D4]"
                 >
                   {editProduct ? 'Guardar Cambios' : 'Agregar'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Client Modal */}
+        {showClientModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg p-6 w-full max-w-2xl shadow-xl max-h-[90vh] overflow-y-auto">
+              <h3 className="text-xl font-semibold mb-4 text-[#333]">
+                {editClient ? 'Editar Cliente' : 'Agregar Cliente'}
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nombre <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    value={clientForm.nombre}
+                    onChange={(e) => setClientForm({ ...clientForm, nombre: e.target.value })}
+                    className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-[#976ECD]"
+                    placeholder="Ej: Juan"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Apellido <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    value={clientForm.apellido}
+                    onChange={(e) => setClientForm({ ...clientForm, apellido: e.target.value })}
+                    className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-[#976ECD]"
+                    placeholder="Ej: Pérez"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Documento <span className="text-red-500">*</span></label>
+                  <select
+                    value={clientForm.ti_documento}
+                    onChange={(e) => setClientForm({ ...clientForm, ti_documento: e.target.value })}
+                    className="w-full border border-gray-300 rounded px-3 py-2 bg-white focus:outline-none focus:border-[#976ECD]"
+                  >
+                    <option value="">Seleccione</option>
+                    <option value="CC">CC - Cédula de Ciudadanía</option>
+                    <option value="TI">TI - Tarjeta de Identidad</option>
+                    <option value="CE">CE - Cédula de Extranjería</option>
+                    <option value="PA">PA - Pasaporte</option>
+                    <option value="NIT">NIT</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">N° Documento <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    value={clientForm.n_documento}
+                    onChange={(e) => setClientForm({ ...clientForm, n_documento: e.target.value })}
+                    className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-[#976ECD]"
+                    placeholder="Ej: 1234567890"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+                  <input
+                    type="text"
+                    value={clientForm.telefono}
+                    onChange={(e) => setClientForm({ ...clientForm, telefono: e.target.value })}
+                    className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-[#976ECD]"
+                    placeholder="Ej: 3001234567"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={clientForm.email}
+                    onChange={(e) => setClientForm({ ...clientForm, email: e.target.value })}
+                    className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-[#976ECD]"
+                    placeholder="Ej: correo@ejemplo.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Ciudad</label>
+                  <input
+                    type="text"
+                    value={clientForm.ciudad}
+                    onChange={(e) => setClientForm({ ...clientForm, ciudad: e.target.value })}
+                    className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-[#976ECD]"
+                    placeholder="Ej: Bogotá"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de Registro</label>
+                  <input
+                    type="date"
+                    value={clientForm.fecha_registro}
+                    onChange={(e) => setClientForm({ ...clientForm, fecha_registro: e.target.value })}
+                    className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-[#976ECD]"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
+                  <input
+                    type="text"
+                    value={clientForm.direccion}
+                    onChange={(e) => setClientForm({ ...clientForm, direccion: e.target.value })}
+                    className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-[#976ECD]"
+                    placeholder="Ej: Calle 123 # 45-67"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={() => setShowClientModal(false)}
+                  className="bg-gray-300 text-gray-700 border-none py-2 px-4 rounded cursor-pointer hover:bg-gray-400"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSaveClient}
+                  className="bg-[#976ECD] text-white border-none py-2 px-4 rounded cursor-pointer hover:bg-[#9966D4]"
+                >
+                  {editClient ? 'Guardar Cambios' : 'Agregar'}
                 </button>
               </div>
             </div>

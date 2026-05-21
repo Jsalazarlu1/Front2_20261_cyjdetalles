@@ -6,14 +6,34 @@ export const getUsers = () => {
 };
 
 export const saveUser = (user) => {
+  // Guarda en 'users' para el login
   const users = getUsers();
   users.push(user);
   localStorage.setItem('users', JSON.stringify(users));
+
+  // Guarda también en 'clients' para que aparezca en el Dashboard
+  const clients = localStorage.getItem('clients');
+  const clientList = clients ? JSON.parse(clients) : [];
+  clientList.push({
+    id_cliente: user.id_cliente || Date.now().toString(),
+    ti_documento: user.ti_documento || '',
+    n_documento: user.n_documento || user.documento || '',
+    nombre: user.nombre || '',
+    apellido: user.apellido || '',
+    telefono: user.telefono || '',
+    direccion: user.direccion || '',
+    ciudad: user.ciudad || '',
+    email: user.email || '',
+    fecha_registro: user.fecha_registro || new Date().toISOString().split('T')[0],
+    activo: true,
+    pedidos: 0
+  });
+  localStorage.setItem('clients', JSON.stringify(clientList));
 };
 
 export const findUserByDocument = (documento) => {
   const users = getUsers();
-  return users.find((u) => u.documento === documento);
+  return users.find((u) => u.n_documento === documento || u.documento === documento);
 };
 
 export const getCurrentUser = () => {
@@ -102,16 +122,14 @@ export const updateOrderStatus = (orderId, newStatus) => {
   if (!ESTADOS.includes(newStatus)) return false;
   orders[index].estado = newStatus;
   // Si el pedido no tiene historial de estados, crea un array vacio
-  if (!orders [index].historialEstado) {
+  if (!orders[index].historialEstado) {
     orders[index].historialEstados = [];
-    
   }
   // Agrega un nuevo registro al historial de estados
   orders[index].historialEstados.push({
     estado: newStatus,
-    fecha:new Date().toLocaleDateString('es-Co'),
+    fecha: new Date().toLocaleDateString('es-Co'),
     hora: new Date().toLocaleTimeString('es-Co')
-
   });
   // Guarda los cambios en localStorage
   localStorage.setItem('orders', JSON.stringify(orders));
