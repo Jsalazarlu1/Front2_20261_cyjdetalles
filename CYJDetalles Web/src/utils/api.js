@@ -156,7 +156,7 @@ export const deleteDetallePedido = async (id) => {
 
 export const getAllUsuarios = async () => {
 try {
-    const response = await fetch(`${API_BASE_URL}/usuarios`, {
+    const response = await fetch(`${API_URL}/usuarios`, {
     method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -180,7 +180,7 @@ try {
 
 export const getAllProductos = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/productos`, {
+    const response = await fetch(`${API_URL}/productos`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -204,7 +204,7 @@ export const getAllProductos = async () => {
 
 export const getAllClientes = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/clientes`, {
+    const response = await fetch(`${API_URL}/clientes`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -227,7 +227,7 @@ export const getAllClientes = async () => {
 
 export const getAllPedidos = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/pedidos`, {
+    const response = await fetch(`${API_URL}/pedidos`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -248,7 +248,7 @@ export const getAllPedidos = async () => {
 
 export const getPedidoById = async (id) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/pedidos/${id}`, {
+    const response = await fetch(`${API_URL}/pedidos/${id}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -269,7 +269,7 @@ export const getPedidoById = async (id) => {
 
 export const createPedido = async (pedidoData) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/pedidos`, {
+    const response = await fetch(`${API_URL}/pedidos`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -291,7 +291,7 @@ export const createPedido = async (pedidoData) => {
 
 export const updatePedido = async (id, pedidoData) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/pedidos/${id}`, {
+    const response = await fetch(`${API_URL}/pedidos/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -313,7 +313,7 @@ export const updatePedido = async (id, pedidoData) => {
 
 export const deletePedido = async (id) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/pedidos/${id}`, {
+    const response = await fetch(`${API_URL}/pedidos/${id}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
