@@ -184,7 +184,7 @@ const Home = () => {
           {mergedProducts.velas.map((producto) => (
             <div key={producto.id} className="bg-[#D4C5E6] rounded-lg overflow-hidden shadow-lg hover:-translate-y-1 hover:shadow-xl transition-all flex flex-col">
               <img src={producto.imagen} alt={producto.nombre} className="w-full h-64 object-cover" />
-              <div className="p-4 text-center flex flex-col flex-grow justify-between">
+              <div className="p-4 text-center flex flex-col grow justify-between">
                 <div>
                   <h3 className="text-[#9966D4] mb-2 text-xl">{producto.nombre}</h3>
                   <p className="text-sm text-gray-600 mb-4">{producto.descripcion}</p>
@@ -208,7 +208,7 @@ const Home = () => {
           {mergedProducts.retablos.map((producto) => (
             <div key={producto.id} className="bg-[#D4C5E6] rounded-lg overflow-hidden shadow-lg hover:-translate-y-1 hover:shadow-xl transition-all flex flex-col">
               <img src={producto.imagen} alt={producto.nombre} className="w-full h-64 object-cover" />
-              <div className="p-4 text-center flex flex-col flex-grow justify-between">
+              <div className="p-4 text-center flex flex-col grow justify-between">
                 <div>
                   <h3 className="text-[#9966D4] mb-2 text-xl">{producto.nombre}</h3>
                   <p className="text-sm text-gray-600 mb-4">{producto.descripcion}</p>
