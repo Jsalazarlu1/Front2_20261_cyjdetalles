@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getUsers, saveUser, setCurrentUser, setAdminSession, findUserByDocument } from '../utils/storage';
+import { createCliente,getAllUsuarios, createUsuario,updateUsuario,deleteUsuario ,getAllProductos,createProducto,updateProducto,deleteProducto , getAllClientes,  updateCliente,deleteCliente } from '../utils/api';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -34,7 +35,9 @@ const Login = () => {
       navigate('/dashboard');
       return;
     }
-
+    const [showClienteModal, setShowClienteModal] = useState(false);
+    const [editCliente, setEditCliente] = useState(null);
+    const [clienteForm, setClienteForm] = useState({nombre: '',email:'', telefono:'',documento:'',direccion:'',ciudad:'',ti_documento:'' });
     // Buscar usuario registrado por documento
     const user = findUserByDocument(loginUser);
     if (user && user.password === loginPass) {
@@ -47,7 +50,7 @@ const Login = () => {
     alert('Usuario o contraseña incorrectos');
   };
 
-  const handleRegister = (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
 
     const users = getUsers();
@@ -68,13 +71,36 @@ const Login = () => {
       direccion: regDireccion,
       ciudad: regCiudad,
       email: regEmail,
-      fecha_registro: new Date().toISOString().split('T')[0],
+      fecha_registro: new Date().toISOString(),
       password: regPassword,
       username: regEmail.split('@')[0],
     };
 
     saveUser(newUser);
     setCurrentUser(newUser);
+    try{
+      await createCliente({
+        tiDocumento: regTiDocumento,
+        numeroDocumento: regDocumento,
+        nombre: regNombre,
+        apellido: regApellido,
+        telefono: regTelefono,
+        direccion: regDireccion,
+        ciudad: regCiudad,
+        correoElectronico: regEmail,
+        contrasena: regPassword,
+        fechaRegistro: newUser.fecha_registro,
+      });
+      await createUsuario({
+        nombreUsuario: regEmail.split('@')[0],
+        documento: regDocumento,
+        contrasena: regPassword,
+        rol: 'Cliente',
+        activo: true,
+      });
+    }catch(error){
+      console.warn('El cliente se guardó localmente pero no se pudo sincronizar con el servidor:', error.message)
+    }
     window.dispatchEvent(new Event('storage'));
     alert('Registro exitoso. ¡Bienvenido!');
     navigate('/');

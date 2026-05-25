@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:8080/api';
+const API_URL = 'http://localhost:8081/api';
 
 // FUNCION LOGIN
 export const loginUser = async (documento, password) => {
@@ -176,7 +176,53 @@ try {
 };
 
 
-// 🛍️ PRODUCTOS
+// 👥 USUARIOS - CRUD
+
+export const createUsuario = async (usuarioData) => {
+  try {
+    const response = await fetch(`${API_URL}/usuarios`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(usuarioData)
+    });
+    if (!response.ok) throw new Error('Error al crear usuario');
+    return await response.json();
+  } catch (error) {
+    console.error('Error al crear usuario:', error);
+    throw error;
+  }
+};
+
+export const updateUsuario = async (id, usuarioData) => {
+  try {
+    const response = await fetch(`${API_URL}/usuarios/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(usuarioData)
+    });
+    if (!response.ok) throw new Error('Error al actualizar usuario');
+    return await response.json();
+  } catch (error) {
+    console.error('Error al actualizar usuario:', error);
+    throw error;
+  }
+};
+
+export const deleteUsuario = async (id) => {
+  try {
+    const response = await fetch(`${API_URL}/usuarios/${id}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (!response.ok) throw new Error('Error al eliminar usuario');
+    return { success: true };
+  } catch (error) {
+    console.error('Error al eliminar usuario:', error);
+    throw error;
+  }
+};
+
+// 🛍️ PRODUCTOS - CRUD
 
 export const getAllProductos = async () => {
   try {
@@ -199,6 +245,49 @@ export const getAllProductos = async () => {
   }
 };
 
+export const createProducto = async (productoData) => {
+  try {
+    const response = await fetch(`${API_URL}/Producto`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(productoData)
+    });
+    if (!response.ok) throw new Error('Error al crear producto');
+    return await response.json();
+  } catch (error) {
+    console.error('Error al crear producto:', error);
+    throw error;
+  }
+};
+
+export const updateProducto = async (id, productoData) => {
+  try {
+    const response = await fetch(`${API_URL}/Producto/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(productoData)
+    });
+    if (!response.ok) throw new Error('Error al actualizar producto');
+    return await response.json();
+  } catch (error) {
+    console.error('Error al actualizar producto:', error);
+    throw error;
+  }
+};
+
+export const deleteProducto = async (id) => {
+  try {
+    const response = await fetch(`${API_URL}/Producto/${id}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (!response.ok) throw new Error('Error al eliminar producto');
+    return { success: true };
+  } catch (error) {
+    console.error('Error al eliminar producto:', error);
+    throw error;
+  }
+};
 
 // 👤 CLIENTES
 
@@ -222,6 +311,53 @@ export const getAllClientes = async () => {
     throw error;
   }
 };
+
+//  👤 CLIENTES - CRUD 
+export const createCliente = async (clienteData) => {
+  try {
+    const response = await fetch(`${API_URL}/clientes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(clienteData)
+    });
+    if (!response.ok) throw new Error('Error al crear cliente');
+    return await response.json();
+  } catch (error) {
+    console.error('Error al crear cliente:', error);
+    throw error;
+  }
+};
+
+export const updateCliente = async (id, clienteData) => {
+  try{
+    const response = await fetch(`${API_URL}/clientes/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(clienteData)
+    });
+    if (!response.ok) throw new Error('Error al actualizar cliente');
+    return await response.json();
+  } catch (error) {
+    console.error('Error al actualizar cliente:', error);
+    throw error;
+  }
+};
+
+export const deleteCliente = async (id) => {
+  try {
+    const response = await fetch(`${API_URL}/clientes/${id}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (!response.ok) throw new Error('Error al eliminar cliente');
+    return { success: true };
+  } catch (error) {
+    console.error('Error al eliminar cliente:', error);
+    throw error;
+  }
+    };
+
+
 
 // 📋 PEDIDOS
 
