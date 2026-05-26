@@ -245,6 +245,15 @@ export const getAllProductos = async () => {
   }
 };
 
+export const getAllCategorias = async () => {
+  return [
+    { id: 1, nombre: 'Desayunos' },
+    { id: 2, nombre: 'Anchetas' },
+    { id: 3, nombre: 'Velas artesanales' },
+    { id: 4, nombre: 'Retablos personalizados' },
+  ];
+};
+
 export const createProducto = async (productoData) => {
   try {
     const response = await fetch(`${API_URL}/Producto`, {

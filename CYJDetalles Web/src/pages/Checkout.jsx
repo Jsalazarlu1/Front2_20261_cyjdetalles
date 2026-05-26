@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getCart, saveCart, clearCart, saveOrder, getCurrentUser} from '../utils/storage';
+import { createPedido, createDetallePedido } from '../utils/api';
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -15,6 +16,12 @@ const Checkout = () => {
   useEffect(() => {
     const cartData = getCart();
     setCart(cartData);
+
+    const user = getCurrentUser();
+    if (user) {
+      if (user.nombre) setNombre(user.nombre + (user.apellido ? ` ${user.apellido}` : ''));
+      if (user.telefono) setTelefono(user.telefono);
+    }
   }, []);
 
   const getSubtotal = () => {
@@ -45,42 +52,76 @@ const Checkout = () => {
     window.dispatchEvent(new Event('storage'));
   };
 
-  const handlePayment = (method) => {
-    
+  const handlePayment = async (method) => {
     if (cart.length === 0) {
-    
       alert('🛒 Tu carrito está vacío. Agrega productos antes de pagar.');
       return;
-      }
+    }
 
-      //validacion del formulario de los datos del envio
-      if (!nombre ||!telefono || !direccion) {
-        alert('❗ Por favor, completa todos los campos de envío antes de confirmar tu compra.');
-        return;
-      }
-     // Confirmación de compra
+    if (!nombre || !telefono || !direccion) {
+      alert('❗ Por favor, completa todos los campos de envío antes de confirmar tu compra.');
+      return;
+    }
+
     const confirmPurchase = window.confirm(
       `💳 ¿Deseas confirmar la compra de ${cart.reduce((sum, item) => sum + item.quantity, 0)} productos con pago ${method}?`
     );
-    // Aquí podrías agregar validaciones adicionales, como verificar que los campos de envío estén completos.
+
     if (confirmPurchase) {
-      // Guardar la orden usando la utilidad centralizada
-      saveOrder({
-        userDocumento: getCurrentUser()?.n_documento || getCurrentUser()?.documento || 'Desconocido',
-        userNombre: getCurrentUser()?.nombre || 'Desconocido',
+      const currentUser = getCurrentUser();
+      const total = getTotal();
+
+      const orderData = {
+        userDocumento: currentUser?.n_documento || currentUser?.documento || 'Desconocido',
+        userNombre: currentUser?.nombre || 'Desconocido',
         items: cart,
         subtotal: getSubtotal(),
         envio: costoEnvio,
-        total: getTotal(),
+        total,
         nombre,
         telefono,
         direccion,
         metodoPago: method,
         mensaje,
-      });
+        estado: 'Pendiente',
+      };
+
+      try {
+        const pedidoResp = await createPedido({
+          fechaPedido: new Date().toISOString(),
+          estado: 'Pendiente',
+          total,
+          cliente: currentUser?.id_cliente ? { id: Number(currentUser.id_cliente) } : null,
+          usuario: currentUser?.id_usuario ? { id: Number(currentUser.id_usuario) } : null,
+        });
+
+        const pedidoId = pedidoResp?.id;
+        if (pedidoId) {
+          for (const item of cart) {
+            const precio = item.precio || item.price || 0;
+            const prodId = typeof item.id === 'string' && item.id.startsWith('api-')
+              ? Number(item.id.replace('api-', ''))
+              : Number(item.id);
+            if (prodId) {
+              await createDetallePedido({
+                cantidad: item.quantity,
+                precioUnitario: precio,
+                total: precio * item.quantity,
+                pedido: { id: pedidoId },
+                producto: { id: prodId },
+              });
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error al guardar en la base de datos:', error);
+      }
+
+      saveOrder(orderData);
       alert('🎉 Muchas gracias, tu compra ha sido realizada con éxito.');
       clearCart();
       window.dispatchEvent(new Event('storage'));
+      navigate('/');
     }
   };
 

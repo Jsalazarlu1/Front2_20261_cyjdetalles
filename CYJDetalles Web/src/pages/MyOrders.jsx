@@ -18,8 +18,9 @@ const MyOrders = () => {
         // 2. Cargar pedidos del usuario
         const allOrders = getOrders();
         // Filtrar solo los pedidos del usuario actual
+        const userDoc = currentUser.n_documento || currentUser.documento;
         const userOrders = allOrders.filter(
-            (o) => o.userDocumento === currentUser.documento
+            (o) => o.userDocumento === userDoc
         );
         setOrders(userOrders);
         setLoading(false);

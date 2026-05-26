@@ -36,58 +36,44 @@ const carouselItems = [
 const Home = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [currentUser, setCurrentUser] = useState(getCurrentUser());
-  const [dynamicProducts, setDynamicProducts] = useState([]);
   const [Productos, setProductos] = useState([]);
 
-
-
-  // Efecto para el carrusel automático
+  // Cargar productos desde el backend
   useEffect(() => {
-    // Cargar productos dinámicos desde el backend
     getAllProductos()
-      .then((data) =>{
-        setProductos(data)
-        console.log('Productos cargados:', data)
-      }
-    )
+      .then((data) => {
+        setProductos(data);
+      })
       .catch((error) => console.error('Error al cargar productos:', error));
-      //carusel
+
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % carouselItems.length);
     }, 10000);
     return () => clearInterval(interval);
   }, []);
 
-  const loadDynamicProducts = () => {
-    const stored = JSON.parse(localStorage.getItem('products') || '[]');
-    setDynamicProducts(Array.isArray(stored) ? stored : []);
-  };
-
   useEffect(() => {
-    loadDynamicProducts();
     const handleStorageUpdate = () => {
       setCurrentUser(getCurrentUser());
-      loadDynamicProducts();
     };
     window.addEventListener('storage', handleStorageUpdate);
     return () => window.removeEventListener('storage', handleStorageUpdate);
   }, []);
 
   const getDisplayProduct = (producto) => ({
-    id: producto.id,
+    id: `api-${producto.id}`,
     nombre: producto.nombre || producto.name || 'Producto',
     descripcion: producto.descripcion || producto.description || '',
-    precio: producto.precio ?? producto.price ?? 0,
+    precio: producto.precio_unitario ?? producto.precio ?? producto.price ?? 0,
     imagen: producto.imagen || producto.image || '/placeholder.png',
   });
 
   const getDynamicCategoryProducts = (category) => {
-    const lowerCategory = category.toLowerCase();
-    return dynamicProducts
+    return Productos
       .filter((producto) => {
-        const cat = (producto.category || '').toLowerCase();
+        const cat = (producto.category || producto.categoria || '').toLowerCase();
         if (category === 'anchetas') return cat.includes('ancheta') || cat.includes('desayuno');
-        if (category === 'velas') return cat.includes('vela') || cat.includes('recordatorio');
+        if (category === 'velas') return cat.includes('vela');
         if (category === 'retablos') return cat.includes('retablo');
         return false;
       })

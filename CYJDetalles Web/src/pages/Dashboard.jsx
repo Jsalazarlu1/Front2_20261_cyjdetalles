@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Line } from 'react-chartjs-2';
 import { updateOrderStatus, ESTADOS, getOrders } from '../utils/storage';
-import { getAllProductos, createProducto, updateProducto, deleteProducto, getAllUsuarios, createUsuario, updateUsuario, deleteUsuario, getAllClientes, updateCliente, deleteCliente } from '../utils/api';
+import { getAllProductos, createProducto, updateProducto, deleteProducto, getAllUsuarios, createUsuario, updateUsuario, deleteUsuario, getAllClientes, updateCliente, deleteCliente, getAllCategorias } from '../utils/api';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -34,13 +34,16 @@ const Dashboard = () => {
   const [users, setUsers] = useState([]);
   const [showProductModal, setShowProductModal] = useState(false);
   const [editProduct, setEditProduct] = useState(null);
-  const [productForm, setProductForm] = useState({ name: '', price: '', descripcion: '', imagen: '' });
+  const [productForm, setProductForm] = useState({ name: '', price: '', descripcion: '', imagen: '', category: '' });
   const [showClientModal, setShowClientModal] = useState(false);
   const [editClient, setEditClient] = useState(null);
   const [clientForm, setClientForm] = useState({ nombre: '', apellido: '', telefono: '', direccion: '', ciudad: '', correoElectronico: '' });
   const [showUserModal, setShowUserModal] = useState(false);
   const [editUserState, setEditUserState] = useState(null);
   const [userForm, setUserForm] = useState({ nombreUsuario: '', documento: '', contrasena: '', rol: 'Cliente' });
+  const [categories, setCategories] = useState([]);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [categoryForm, setCategoryForm] = useState({ name: '' });
 
   useEffect(() => {
     const loadData = async () => {
@@ -75,6 +78,8 @@ const Dashboard = () => {
           getAllClientes()
         ]);
         setProducts(productosData);
+        const cats = await getAllCategorias();
+        setCategories(cats);
         setUsers(usuariosData.map(u => ({ ...u, activo: u.activo !== false })));
         clientesData.forEach(c => {
           const exist = merged.find(m => m.documento === c.numeroDocumento || m.nombre === c.nombre);
@@ -214,27 +219,27 @@ const Dashboard = () => {
 
   const openAddProduct = () => {
     setEditProduct(null);
-    setProductForm({ name: '', price: '', imagen: '' });
+    setProductForm({ name: '', price: '', descripcion: '', imagen: '', category: '' });
     setShowProductModal(true);
   };
 
   const openEditProduct = (product) => {
     setEditProduct(product);
-    setProductForm({ name: product.name, price: product.price.toString(), descripcion: product.descripcion || '', imagen: product.imagen || '' });
+    setProductForm({ name: product.nombre || product.name, price: (product.precio_unitario ?? product.price ?? '').toString(), descripcion: product.descripcion || '', imagen: product.imagen || '', category: product.categoria || product.category || '' });
     setShowProductModal(true);
   };
 
   const handleSaveProduct = async () => {
-    const { name, price, descripcion, imagen } = productForm;
+    const { name, price, descripcion, imagen, category: categoria } = productForm;
     if (!name || !price || isNaN(Number(price))) {
       alert('Por favor ingresa un nombre y un precio válido.');
       return;
     }
     try {
       if (editProduct) {
-        await updateProducto(editProduct.id, { name, price: Number(price), descripcion, imagen });
+        await updateProducto(editProduct.id, { nombre: name, precio_unitario: Number(price), descripcion, imagen, categoria, stock: 0 });
       } else {
-        await createProducto({ name, price: Number(price), descripcion, imagen });
+        await createProducto({ nombre: name, precio_unitario: Number(price), descripcion, imagen, categoria, stock: 0 });
       }
       await refreshProducts();
       setShowProductModal(false);
@@ -651,6 +656,7 @@ const Dashboard = () => {
                     <th className="border border-gray-300 p-2">Imagen</th>
                     <th className="border border-gray-300 p-2">Nombre</th>
                     <th className="border border-gray-300 p-2">Precio</th>
+                    <th className="border border-gray-300 p-2">Categoría</th>
                     <th className="border border-gray-300 p-2">Descripción</th>
                     <th className="border border-gray-300 p-2">Acciones</th>
                   </tr>
@@ -660,13 +666,14 @@ const Dashboard = () => {
                     <tr key={i}>
                       <td className="border border-gray-300 p-2 text-center">
                         {p.imagen ? (
-                          <img src={p.imagen} alt={p.name} className="w-16 h-16 object-cover rounded" />
+                          <img src={p.imagen} alt={p.nombre || p.name} className="w-24 h-24 object-cover rounded" />
                         ) : (
-                          <div className="w-16 h-16 bg-gray-200 rounded flex items-center justify-center text-gray-400 text-xs">Sin imagen</div>
+                          <div className="w-24 h-24 bg-gray-200 rounded flex items-center justify-center text-gray-400 text-xs">Sin imagen</div>
                         )}
                       </td>
-                      <td className="border border-gray-300 p-2">{p.name}</td>
-                      <td className="border border-gray-300 p-2">${p.price.toLocaleString('es-CO')}</td>
+                      <td className="border border-gray-300 p-2">{p.nombre || p.name}</td>
+                      <td className="border border-gray-300 p-2">${(p.precio_unitario ?? p.price ?? 0).toLocaleString('es-CO')}</td>
+                      <td className="border border-gray-300 p-2">{p.categoria || p.category || 'Sin categoría'}</td>
                       <td className="border border-gray-300 p-2 max-w-[200px] truncate">{p.descripcion || '—'}</td>
                       <td className="border border-gray-300 p-2 text-center">
                         <button
@@ -676,7 +683,7 @@ const Dashboard = () => {
                           Editar
                         </button>
                         <button
-                          onClick={() => removeProduct(p.name)}
+                          onClick={() => removeProduct(p.nombre || p.name)}
                           className="bg-red-500 text-white border-none py-1 px-3 rounded cursor-pointer hover:bg-red-600 text-xs"
                         >
                           Eliminar
@@ -767,6 +774,16 @@ const Dashboard = () => {
                     placeholder="Ej: Desayuno Premium"
                   />
                 </div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Categoría
+                <select value={productForm.category}
+                onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
+                className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-[#976ECD] bg-white mt-1">
+                  <option value="">Selecciona una categoría</option>
+                  {categories.map(c => (
+                    <option key={c.id} value={c.nombre}>{c.nombre}</option>
+                  ))}
+                </select>
+                </label>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Precio</label>
                   <input

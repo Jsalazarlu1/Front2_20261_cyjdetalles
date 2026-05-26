@@ -23,6 +23,9 @@ const Login = () => {
   const [regDireccion, setRegDireccion] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
+  const [showClienteModal, setShowClienteModal] = useState(false);
+  const [editCliente, setEditCliente] = useState(null);
+  const [clienteForm, setClienteForm] = useState({nombre: '',email:'', telefono:'',documento:'',direccion:'',ciudad:'',ti_documento:'' });
 
   const handleLogin = (e) => {
     e.preventDefault();
@@ -35,9 +38,6 @@ const Login = () => {
       navigate('/dashboard');
       return;
     }
-    const [showClienteModal, setShowClienteModal] = useState(false);
-    const [editCliente, setEditCliente] = useState(null);
-    const [clienteForm, setClienteForm] = useState({nombre: '',email:'', telefono:'',documento:'',direccion:'',ciudad:'',ti_documento:'' });
     // Buscar usuario registrado por documento
     const user = findUserByDocument(loginUser);
     if (user && user.password === loginPass) {
@@ -61,6 +61,8 @@ const Login = () => {
       return;
     }
 
+   
+
     const newUser = {
       id_cliente: Date.now().toString(),
       ti_documento: regTiDocumento,
@@ -76,10 +78,8 @@ const Login = () => {
       username: regEmail.split('@')[0],
     };
 
-    saveUser(newUser);
-    setCurrentUser(newUser);
-    try{
-      await createCliente({
+    try {
+      const clienteResp = await createCliente({
         tiDocumento: regTiDocumento,
         numeroDocumento: regDocumento,
         nombre: regNombre,
@@ -91,16 +91,22 @@ const Login = () => {
         contrasena: regPassword,
         fechaRegistro: newUser.fecha_registro,
       });
-      await createUsuario({
+      const usuarioResp = await createUsuario({
         nombreUsuario: regEmail.split('@')[0],
         documento: regDocumento,
         contrasena: regPassword,
         rol: 'Cliente',
         activo: true,
       });
-    }catch(error){
-      console.warn('El cliente se guardó localmente pero no se pudo sincronizar con el servidor:', error.message)
+
+      newUser.id_cliente = clienteResp?.id || clienteResp?.id_cliente;
+      newUser.id_usuario = usuarioResp?.id || usuarioResp?.id_usuario;
+    } catch (error) {
+      console.warn('El cliente se guardó localmente pero no se pudo sincronizar con el servidor:', error.message);
     }
+
+    saveUser(newUser);
+    setCurrentUser(newUser);
     window.dispatchEvent(new Event('storage'));
     alert('Registro exitoso. ¡Bienvenido!');
     navigate('/');
