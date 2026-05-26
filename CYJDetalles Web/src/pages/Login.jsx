@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getUsers, saveUser, setCurrentUser, setAdminSession, findUserByDocument } from '../utils/storage';
+import { createCliente,getAllUsuarios, createUsuario,updateUsuario,deleteUsuario ,getAllProductos,createProducto,updateProducto,deleteProducto , getAllClientes,  updateCliente,deleteCliente } from '../utils/api';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -22,6 +23,9 @@ const Login = () => {
   const [regDireccion, setRegDireccion] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
+  const [showClienteModal, setShowClienteModal] = useState(false);
+  const [editCliente, setEditCliente] = useState(null);
+  const [clienteForm, setClienteForm] = useState({nombre: '',email:'', telefono:'',documento:'',direccion:'',ciudad:'',ti_documento:'' });
 
   const handleLogin = (e) => {
     e.preventDefault();
@@ -34,7 +38,6 @@ const Login = () => {
       navigate('/dashboard');
       return;
     }
-
     // Buscar usuario registrado por documento
     const user = findUserByDocument(loginUser);
     if (user && user.password === loginPass) {
@@ -47,7 +50,7 @@ const Login = () => {
     alert('Usuario o contraseña incorrectos');
   };
 
-  const handleRegister = (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
 
     const users = getUsers();
@@ -57,6 +60,8 @@ const Login = () => {
       alert('Este correo ya está registrado');
       return;
     }
+
+   
 
     const newUser = {
       id_cliente: Date.now().toString(),
@@ -68,10 +73,37 @@ const Login = () => {
       direccion: regDireccion,
       ciudad: regCiudad,
       email: regEmail,
-      fecha_registro: new Date().toISOString().split('T')[0],
+      fecha_registro: new Date().toISOString(),
       password: regPassword,
       username: regEmail.split('@')[0],
     };
+
+    try {
+      const clienteResp = await createCliente({
+        tiDocumento: regTiDocumento,
+        numeroDocumento: regDocumento,
+        nombre: regNombre,
+        apellido: regApellido,
+        telefono: regTelefono,
+        direccion: regDireccion,
+        ciudad: regCiudad,
+        correoElectronico: regEmail,
+        contrasena: regPassword,
+        fechaRegistro: newUser.fecha_registro,
+      });
+      const usuarioResp = await createUsuario({
+        nombreUsuario: regEmail.split('@')[0],
+        documento: regDocumento,
+        contrasena: regPassword,
+        rol: 'Cliente',
+        activo: true,
+      });
+
+      newUser.id_cliente = clienteResp?.id || clienteResp?.id_cliente;
+      newUser.id_usuario = usuarioResp?.id || usuarioResp?.id_usuario;
+    } catch (error) {
+      console.warn('El cliente se guardó localmente pero no se pudo sincronizar con el servidor:', error.message);
+    }
 
     saveUser(newUser);
     setCurrentUser(newUser);

@@ -8,7 +8,7 @@ export const getUsers = () => {
 export const saveUser = (user) => {
   // Guarda en 'users' para el login
   const users = getUsers();
-  users.push(user);
+  users.push({ ...user, activo: true });
   localStorage.setItem('users', JSON.stringify(users));
 
   // Guarda también en 'clients' para que aparezca en el Dashboard

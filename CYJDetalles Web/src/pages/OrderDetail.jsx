@@ -14,8 +14,9 @@ const OrderDetail = () => {
     // Busca la orden por ID y valida que pertenezca al usuario actual
     useEffect(() => {
         const orders = getOrders() || [];
+        const userDoc = currentUser?.n_documento || currentUser?.documento;
         const foundOrder = orders.find(
-            (o) => o.id === id && o.userDocumento === currentUser?.documento
+            (o) => o.id === id && o.userDocumento === userDoc
         );
         if (foundOrder) {
             setOrder(foundOrder);
